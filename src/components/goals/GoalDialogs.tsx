@@ -145,12 +145,12 @@ export function GoalFormDialog({
   const isMoney = valueType === "currency";
   const busy = mutations.create.isPending || mutations.update.isPending;
 
-  const submit = async () => {
+  const submit = async (): Promise<void> => {
     const target = Number(form.target_value);
     const current = Number(form.current_value || 0);
-    if (!form.name.trim()) return toast.error("Please give the goal a name.");
-    if (!target || target <= 0) return toast.error("Target value must be greater than zero.");
-    if (Number.isNaN(current) || current < 0) return toast.error("Current value must be a positive number.");
+    if (!form.name.trim()) { toast.error("Please give the goal a name."); return; }
+    if (!target || target <= 0) { toast.error("Target value must be greater than zero."); return; }
+    if (Number.isNaN(current) || current < 0) { toast.error("Current value must be a positive number."); return; }
 
     const input: GoalInput = {
       name: form.name.trim(),

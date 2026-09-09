@@ -42,7 +42,7 @@ export interface GeneratedContent {
   caption: string;
   callToAction: string;
   hashtags: string[];
-  videoConcept?: string;
+  videoConcept?: string | undefined;
 }
 
 export const BRAND_COLOR_PRESETS = [

@@ -80,7 +80,7 @@ function ContentPage() {
           message,
           offer,
           extra,
-          result: out as unknown as Record<string, unknown>,
+          result: JSON.parse(JSON.stringify(out)),
         });
         await logActivity(user.id, "content", `Created ${platformLabel} content: ${topic}`);
         qc.invalidateQueries({ queryKey: ["content", user.id] });
@@ -189,7 +189,7 @@ function ContentPage() {
         <div className="space-y-5">
           <SectionCard
             title="3. Your content"
-            description={result ? "Copy what you need and post it on your page." : undefined}
+            {...(result ? { description: "Copy what you need and post it on your page." } : {})}
           >
             {!result ? (
               <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">

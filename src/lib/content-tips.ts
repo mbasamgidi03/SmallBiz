@@ -44,5 +44,5 @@ export const DASHBOARD_TIPS = [
 
 export function tipOfTheDay(): string {
   const day = Math.floor(Date.now() / 86_400_000);
-  return DASHBOARD_TIPS[day % DASHBOARD_TIPS.length];
+  return DASHBOARD_TIPS[day % DASHBOARD_TIPS.length] ?? "";
 }
