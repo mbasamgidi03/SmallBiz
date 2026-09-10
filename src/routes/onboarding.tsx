@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile, useSaveProfile, logActivity } from "@/lib/queries";
-import { applyBrandColor } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/app/PageHeader";
@@ -45,10 +44,6 @@ function Onboarding() {
   useEffect(() => {
     if (profile.data?.onboarding_complete) navigate({ to: "/dashboard", replace: true });
   }, [profile.data, navigate]);
-
-  useEffect(() => {
-    applyBrandColor(values.brand_color);
-  }, [values.brand_color]);
 
   if (loading || !user || profile.isPending) return <LoadingScreen />;
 
@@ -124,7 +119,7 @@ function Onboarding() {
               <div>
                 <p className="mb-1.5 text-sm font-medium">Preferred brand colour</p>
                 <p className="mb-3 text-xs text-muted-foreground">
-                  Used for buttons, highlights and your posters. You can change it later.
+                  Used for your posters and promotional designs. You can change it later.
                 </p>
                 <BrandColorPicker
                   value={values.brand_color}

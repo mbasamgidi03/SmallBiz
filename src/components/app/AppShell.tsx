@@ -1,8 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { LayoutDashboard, PenSquare, Image, Target, Building2, LogOut } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { applyBrandColor } from "@/lib/format";
 import type { BusinessProfile } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 
@@ -16,10 +15,6 @@ export const NAV_ITEMS = [
 
 export function AppShell({ profile, children }: { profile: BusinessProfile; children: ReactNode }) {
   const navigate = useNavigate();
-
-  useEffect(() => {
-    applyBrandColor(profile.brand_color);
-  }, [profile.brand_color]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -41,16 +36,16 @@ export function AppShell({ profile, children }: { profile: BusinessProfile; chil
           <span className="grid h-7 w-7 place-items-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
             SB
           </span>
-          <span className="text-sm font-semibold text-foreground">SmallBiz</span>
+          <span className="text-sm font-semibold text-sidebar-accent-foreground">SmallBiz</span>
         </div>
         <nav className="flex-1 space-y-0.5 p-3">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.to}
               to={item.to}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+              className="relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               activeProps={{
-                className: "bg-primary/10 text-primary hover:bg-primary/10",
+                className: "bg-sidebar-accent text-sidebar-accent-foreground before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-primary hover:bg-sidebar-accent",
               }}
             >
               <item.icon className="h-4 w-4 shrink-0" />
@@ -60,12 +55,12 @@ export function AppShell({ profile, children }: { profile: BusinessProfile; chil
         </nav>
         <div className="border-t border-sidebar-border p-3">
           <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold text-foreground">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-accent-foreground">
               {initials}
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{profile.business_name || "My business"}</p>
-              <p className="truncate text-xs text-muted-foreground">{profile.owner_name}</p>
+              <p className="truncate text-sm font-medium text-sidebar-accent-foreground">{profile.business_name || "My business"}</p>
+              <p className="truncate text-xs text-sidebar-foreground">{profile.owner_name}</p>
             </div>
             <Button variant="ghost" size="icon" onClick={signOut} title="Sign out" aria-label="Sign out">
               <LogOut className="h-4 w-4" />
