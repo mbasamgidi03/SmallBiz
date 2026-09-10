@@ -56,12 +56,3 @@ export function contrastText(hex: string): string {
   return isDarkColor(hex) ? "#ffffff" : "#1a1a1a";
 }
 
-/** Applies the saved brand colour as the interface accent only. */
-export function applyBrandColor(hex: string) {
-  if (typeof document === "undefined") return;
-  const root = document.documentElement;
-  const safe = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : "#1d6f5c";
-  root.style.setProperty("--primary", safe);
-  root.style.setProperty("--primary-foreground", contrastText(safe));
-  root.style.setProperty("--ring", safe);
-}

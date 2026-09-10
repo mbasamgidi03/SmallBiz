@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile, useSaveProfile } from "@/lib/queries";
-import { applyBrandColor } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, PageHeader, SectionCard } from "@/components/app/PageHeader";
@@ -55,12 +54,10 @@ function BusinessPage() {
   const patch = (p: Partial<BusinessFormValues>) => {
     setDirty(true);
     setValues((v) => ({ ...v, ...p }));
-    if (p.brand_color) applyBrandColor(p.brand_color);
   };
 
   const discard = () => {
     setDirty(false);
-    if (profile.data) applyBrandColor(profile.data.brand_color);
   };
 
   const submit = async () => {
@@ -120,15 +117,9 @@ function BusinessPage() {
 
           <SectionCard
             title="Branding"
-            description="Your brand colour is used as an accent across SmallBiz and on posters."
+            description="Your brand colour is used in posters and promotional designs."
           >
             <BrandColorPicker value={values.brand_color} onChange={(hex) => patch({ brand_color: hex })} />
-            <div className="mt-4 flex items-center gap-2">
-              <Button size="sm">Example button</Button>
-              <span className="rounded-md border px-2 py-1 text-xs font-medium text-primary accent-tint">
-                Selected state
-              </span>
-            </div>
           </SectionCard>
         </div>
       </div>

@@ -1,16 +1,16 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowRight, Image, Lightbulb, PenSquare, Target } from "lucide-react";
+import { ArrowRight, CalendarDays, Lightbulb, Target } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { activitiesQuery, useGoalMutations, useGoals, useProfile } from "@/lib/queries";
-import { timeAgo } from "@/lib/format";
-import { tipOfTheDay } from "@/lib/content-tips";
+import { formatDate, formatValue, goalPercent, timeAgo } from "@/lib/format";
+import { businessTip } from "@/lib/content-tips";
 import type { Goal } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "@/components/app/PageHeader";
-import { GoalCard } from "@/components/goals/GoalCard";
-import { GoalFormDialog, UpdateProgressDialog } from "@/components/goals/GoalDialogs";
+import { UpdateProgressDialog } from "@/components/goals/GoalDialogs";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -31,80 +31,53 @@ function Dashboard() {
   const activities = useQuery(activitiesQuery(user?.id));
   const mutations = useGoalMutations(user?.id);
   const [updating, setUpdating] = useState<Goal | null>(null);
-  const [creating, setCreating] = useState(false);
 
-  const name = profile.data?.owner_name || profile.data?.business_name || "there";
-  const activeGoals = (goals.data ?? []).filter((g) => g.status === "active").slice(0, 3);
-  const totalActive = (goals.data ?? []).filter((g) => g.status === "active").length;
+  const ownerName = profile.data?.owner_name?.trim() || "there";
+  const firstName = ownerName === "there" ? ownerName : ownerName.split(/\s+/)[0];
+  const businessName = profile.data?.business_name || "your business";
+  const activeGoals = (goals.data ?? []).filter((goal) => goal.status === "active");
+  const primaryGoal = activeGoals[0];
+  const otherGoals = activeGoals.slice(1, 4);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Welcome back, {name}</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Welcome back, {firstName}</h1>
         <p className="text-sm text-muted-foreground">
-          Here's how {profile.data?.business_name || "your business"} is doing.
+          Here's how {businessName} is doing.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <QuickAction to="/content" icon={PenSquare} title="Create Content" desc="Ideas and captions for social media" />
-        <QuickAction to="/poster" icon={Image} title="Create Poster" desc="Design an advert for your business" />
-        <button
-          type="button"
-          onClick={() => setCreating(true)}
-          className="flex items-center gap-3 rounded-lg border bg-card p-4 text-left shadow-card transition-colors hover:border-primary/40 hover:bg-primary/5"
-        >
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-            <Target className="h-4 w-4" />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-sm font-semibold">Set a Goal</span>
-            <span className="block truncate text-xs text-muted-foreground">Define something measurable</span>
-          </span>
-        </button>
-      </div>
-
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <SectionCard
-          title="Goal progress"
-          description={totalActive ? `${totalActive} active goal${totalActive === 1 ? "" : "s"}` : "No active goals yet"}
-          actions={
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/goals">
-                View all goals <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          }
-        >
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(17rem,0.8fr)]">
+        <section className="overflow-hidden rounded-lg border bg-card shadow-card">
           {goals.isPending ? (
-            <p className="text-sm text-muted-foreground">Loading goals…</p>
-          ) : activeGoals.length === 0 ? (
-            <div className="rounded-md border border-dashed p-6 text-center">
-              <p className="text-sm font-medium">No goals yet</p>
-              <p className="mb-3 text-xs text-muted-foreground">
-                Set a target for sales, customers or followers and track it here.
+            <div className="p-6 text-sm text-muted-foreground">Loading goal progress…</div>
+          ) : primaryGoal ? (
+            <ActiveGoal goal={primaryGoal} onUpdate={setUpdating} />
+          ) : (
+            <div className="flex min-h-72 flex-col items-start justify-center p-6 sm:p-8">
+              <span className="mb-4 grid h-10 w-10 place-items-center rounded-md bg-secondary text-primary">
+                <Target className="h-5 w-5" />
+              </span>
+              <h2 className="text-lg font-semibold">Set your first business goal</h2>
+              <p className="mt-1 max-w-lg text-sm text-muted-foreground">
+                Track something that matters to your business, such as sales, customers, enquiries or social media growth.
               </p>
-              <Button size="sm" onClick={() => setCreating(true)}>
-                Set your first goal
+              <Button className="mt-5" asChild>
+                <Link to="/goals">Set a Goal</Link>
               </Button>
             </div>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {activeGoals.map((g) => (
-                <GoalCard key={g.id} goal={g} compact onUpdate={setUpdating} />
-              ))}
-            </div>
           )}
-        </SectionCard>
+        </section>
 
         <div className="space-y-5">
           <SectionCard title="Recent activity">
             {activities.data && activities.data.length > 0 ? (
               <ul className="space-y-2.5">
-                {activities.data.slice(0, 5).map((a) => (
-                  <li key={a.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 text-sm">
-                    <span className="truncate">{a.description}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground">{timeAgo(a.created_at)}</span>
+                {activities.data.slice(0, 4).map((a) => (
+                  <li key={a.id} className="border-b pb-2.5 text-sm last:border-0 last:pb-0">
+                    <span className="block leading-snug">{a.description}</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">{timeAgo(a.created_at)}</span>
                   </li>
                 ))}
               </ul>
@@ -115,44 +88,87 @@ function Dashboard() {
             )}
           </SectionCard>
 
-          <div className="rounded-lg border bg-primary/5 p-4">
-            <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary">
+          <div className="rounded-lg border bg-card p-4 shadow-card">
+            <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
               <Lightbulb className="h-3.5 w-3.5" /> Quick tip
             </div>
-            <p className="text-sm">{tipOfTheDay()}</p>
+            <p className="text-sm leading-relaxed">{businessTip(profile.data?.category)}</p>
           </div>
         </div>
       </div>
 
+      {otherGoals.length > 0 && (
+        <section>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold">Other Goals</h2>
+            <Button variant="link" size="sm" asChild className="h-auto p-0">
+              <Link to="/goals">
+                View all goals <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {otherGoals.map((goal) => (
+              <CompactGoal key={goal.id} goal={goal} />
+            ))}
+          </div>
+        </section>
+      )}
+
       <UpdateProgressDialog goal={updating} onClose={() => setUpdating(null)} mutations={mutations} />
-      <GoalFormDialog open={creating} onClose={() => setCreating(false)} mutations={mutations} />
     </div>
   );
 }
 
-function QuickAction({
-  to,
-  icon: Icon,
-  title,
-  desc,
-}: {
-  to: "/content" | "/poster";
-  icon: typeof PenSquare;
-  title: string;
-  desc: string;
-}) {
+function ActiveGoal({ goal, onUpdate }: { goal: Goal; onUpdate: (goal: Goal) => void }) {
+  const pct = goalPercent(Number(goal.current_value), Number(goal.target_value));
+
   return (
-    <Link
-      to={to}
-      className="flex items-center gap-3 rounded-lg border bg-card p-4 shadow-card transition-colors hover:border-primary/40 hover:bg-primary/5"
-    >
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="min-w-0">
-        <span className="block text-sm font-semibold">{title}</span>
-        <span className="block truncate text-xs text-muted-foreground">{desc}</span>
-      </span>
-    </Link>
+    <div className="p-6 sm:p-8">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase text-muted-foreground">Active goal</p>
+        <span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium text-primary">In progress</span>
+      </div>
+      <h2 className="mt-5 text-2xl font-semibold leading-tight text-foreground">{goal.name}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">{goal.category}</p>
+
+      <div className="mt-7 flex items-end justify-between gap-4">
+        <p className="text-lg font-semibold">
+          {formatValue(Number(goal.current_value), goal.value_type)}
+          <span className="font-normal text-muted-foreground"> / {formatValue(Number(goal.target_value), goal.value_type)}</span>
+        </p>
+        <p className="text-xl font-semibold text-primary">{pct}%</p>
+      </div>
+      <Progress value={pct} className="mt-3 h-2.5" aria-label={`${pct}% complete`} />
+
+      <div className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
+        <CalendarDays className="h-4 w-4" />
+        <span>Target date: {formatDate(goal.target_date)}</span>
+      </div>
+      <div className="mt-7 flex flex-wrap items-center gap-2">
+        <Button onClick={() => onUpdate(goal)}>Update Progress</Button>
+        <Button variant="ghost" asChild>
+          <Link to="/goals">
+            View Goal <ArrowRight className="h-4 w-4" />
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function CompactGoal({ goal }: { goal: Goal }) {
+  const pct = goalPercent(Number(goal.current_value), Number(goal.target_value));
+  return (
+    <div className="rounded-lg border bg-card p-4 shadow-card">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="truncate text-sm font-semibold">{goal.name}</h3>
+          <p className="text-xs text-muted-foreground">{goal.category}</p>
+        </div>
+        <span className="shrink-0 text-sm font-semibold text-primary">{pct}%</span>
+      </div>
+      <Progress value={pct} className="mt-3 h-1.5" aria-label={`${pct}% complete`} />
+    </div>
   );
 }

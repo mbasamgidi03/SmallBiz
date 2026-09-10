@@ -46,3 +46,37 @@ export function tipOfTheDay(): string {
   const day = Math.floor(Date.now() / 86_400_000);
   return DASHBOARD_TIPS[day % DASHBOARD_TIPS.length] ?? "";
 }
+
+const CATEGORY_TIPS: Record<string, string[]> = {
+  "Food & Beverage": [
+    "Include the price and ordering deadline when you post a daily or weekly special.",
+    "Photograph your best-selling item in natural light and add a clear order method.",
+  ],
+  "Retail / Shop": [
+    "Show one product at a time with its price, key benefit and availability.",
+    "Mention stock levels when they are limited so customers know when to act.",
+  ],
+  "Beauty & Hair": [
+    "Before-and-after photos work best when the lighting and camera angle stay consistent.",
+    "Add your location, booking method and available appointment times to service posts.",
+  ],
+  "Fashion & Clothing": [
+    "Show the same item styled in two ways and include available sizes in the caption.",
+    "Add size, price and delivery details to every product post.",
+  ],
+  "Home Services": [
+    "Show the result of a completed job and state which areas you serve.",
+    "Ask satisfied customers for permission to share a short review with a job photo.",
+  ],
+  "Professional Services": [
+    "Turn one common customer question into a short, practical post each week.",
+    "Describe the outcome of your service in plain language before listing its features.",
+  ],
+};
+
+export function businessTip(category: string | null | undefined): string {
+  const day = Math.floor(Date.now() / 86_400_000);
+  const relevant = category ? CATEGORY_TIPS[category] : undefined;
+  if (relevant?.length) return relevant[day % relevant.length] ?? relevant[0] ?? tipOfTheDay();
+  return tipOfTheDay();
+}
