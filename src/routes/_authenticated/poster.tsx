@@ -12,9 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Field, PageHeader, SectionCard } from "@/components/app/PageHeader";
 import { BrandColorPicker } from "@/components/business/BrandColorPicker";
 import {
-  POSTER_H,
+  POSTER_SIZE,
   POSTER_TEMPLATES,
-  POSTER_W,
   PosterCanvas,
   type PosterColors,
   type PosterFields,
@@ -37,11 +36,16 @@ const emptyFields: PosterFields = {
   headline: "",
   subheading: "",
   offer: "",
+  cta: "",
   businessName: "",
   contact: "",
   location: "",
   image: null,
 };
+
+const TEMPLATE_IDS = POSTER_TEMPLATES.map((t) => t.id);
+const asTemplate = (value: unknown): PosterTemplate =>
+  TEMPLATE_IDS.includes(value as PosterTemplate) ? (value as PosterTemplate) : "image-focus";
 
 function PosterPage() {
   const { user } = useAuth();
@@ -49,18 +53,18 @@ function PosterPage() {
   const saved = useQuery(latestPosterQuery(user?.id));
   const qc = useQueryClient();
 
-  const [template, setTemplate] = useState<PosterTemplate>("bold");
+  const [template, setTemplate] = useState<PosterTemplate>("image-focus");
   const [fields, setFields] = useState<PosterFields>(emptyFields);
   const [colors, setColors] = useState<PosterColors>({
     brand: "#1d6f5c",
     background: "#ffffff",
-    text: "#1a1a1a",
+    text: "#111827",
   });
   const [hydrated, setHydrated] = useState(false);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.5);
 
@@ -69,27 +73,29 @@ function PosterPage() {
     if (hydrated || profile.isPending || saved.isPending) return;
     const p = profile.data;
     if (saved.data) {
-      setTemplate(saved.data.template as PosterTemplate);
+      setTemplate(asTemplate(saved.data.template));
       setFields({ ...emptyFields, ...(saved.data.fields as Partial<PosterFields>), image: null });
-      setColors({ ...colors, ...(saved.data.colors as Partial<PosterColors>) });
-    } else if (p) {
+      setColors((c) => ({ ...c, ...(saved.data?.colors as Partial<PosterColors>) }));
+    }
+    if (p) {
+      // Business details always come from My Business so nothing is re-typed.
       setFields((f) => ({
         ...f,
-        businessName: p.business_name,
-        contact: p.phone,
-        location: p.location,
+        businessName: f.businessName || p.business_name,
+        contact: f.contact || p.phone || p.business_email,
+        location: f.location || p.location,
       }));
-      setColors((c) => ({ ...c, brand: p.brand_color }));
+      if (!saved.data) setColors((c) => ({ ...c, brand: p.brand_color }));
     }
     setHydrated(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile.isPending, saved.isPending, profile.data, saved.data, hydrated]);
 
-  // Scale the fixed-size poster to fit its container
+  // Scale the fixed-size poster to fit its container (always 1:1)
   useLayoutEffect(() => {
     const el = frameRef.current;
     if (!el) return;
-    const update = () => setScale(Math.min(1, el.clientWidth / POSTER_W));
+    const update = () => setScale(Math.min(1, el.clientWidth / POSTER_SIZE));
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
@@ -110,13 +116,13 @@ function PosterPage() {
   };
 
   const download = async () => {
-    if (!canvasRef.current) return;
+    if (!exportRef.current) return;
     setExporting(true);
     try {
-      const dataUrl = await toPng(canvasRef.current, {
-        width: POSTER_W,
-        height: POSTER_H,
-        pixelRatio: 2,
+      const dataUrl = await toPng(exportRef.current, {
+        width: POSTER_SIZE,
+        height: POSTER_SIZE,
+        pixelRatio: 1,
         cacheBust: true,
         style: { transform: "none" },
       });
@@ -162,7 +168,7 @@ function PosterPage() {
     <div>
       <PageHeader
         title="Create Poster"
-        description="Fill in the details, pick a style and download a ready-to-print or share image."
+        description="Fill in the details, pick a layout and download a square poster for Instagram or Facebook."
         actions={
           <>
             <Button variant="outline" onClick={save} disabled={saving}>
@@ -177,7 +183,7 @@ function PosterPage() {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
         <div className="space-y-5">
-          <SectionCard title="Style">
+          <SectionCard title="Layout">
             <div className="grid grid-cols-3 gap-2">
               {POSTER_TEMPLATES.map((t) => (
                 <button
@@ -185,7 +191,7 @@ function PosterPage() {
                   type="button"
                   onClick={() => setTemplate(t.id)}
                   className={`rounded-md border p-3 text-left transition-colors ${
-                    template === t.id ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent"
+                    template === t.id ? "border-primary accent-tint ring-1 ring-primary" : "hover:bg-accent"
                   }`}
                 >
                   <span className="block text-sm font-semibold">{t.label}</span>
@@ -194,12 +200,15 @@ function PosterPage() {
               ))}
             </div>
             <div className="mt-4">
-              <p className="mb-2 text-sm font-medium">Poster colour</p>
+              <p className="mb-1 text-sm font-medium">Brand colour</p>
+              <p className="mb-2 text-xs text-muted-foreground">
+                Taken from My Business. Changing it here only affects this poster.
+              </p>
               <BrandColorPicker value={colors.brand} onChange={(hex) => setColors((c) => ({ ...c, brand: hex }))} />
             </div>
           </SectionCard>
 
-          <SectionCard title="Poster text">
+          <SectionCard title="Poster content">
             <div className="space-y-4">
               <Field label="Headline">
                 <Input
@@ -209,7 +218,7 @@ function PosterPage() {
                   maxLength={60}
                 />
               </Field>
-              <Field label="Subheading" optional>
+              <Field label="Short description" optional>
                 <Input
                   value={fields.subheading}
                   onChange={(e) => patch({ subheading: e.target.value })}
@@ -217,14 +226,24 @@ function PosterPage() {
                   maxLength={90}
                 />
               </Field>
-              <Field label="Price or offer" optional>
-                <Input
-                  value={fields.offer}
-                  onChange={(e) => patch({ offer: e.target.value })}
-                  placeholder="e.g. From R150 · 10% off this week"
-                  maxLength={50}
-                />
-              </Field>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Price or offer" optional hint="Shown as a highlighted badge.">
+                  <Input
+                    value={fields.offer}
+                    onChange={(e) => patch({ offer: e.target.value })}
+                    placeholder="e.g. 20% OFF"
+                    maxLength={28}
+                  />
+                </Field>
+                <Field label="Call to action" optional>
+                  <Input
+                    value={fields.cta}
+                    onChange={(e) => patch({ cta: e.target.value })}
+                    placeholder="e.g. Order on WhatsApp"
+                    maxLength={32}
+                  />
+                </Field>
+              </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Business name">
                   <Input value={fields.businessName} onChange={(e) => patch({ businessName: e.target.value })} />
@@ -256,25 +275,34 @@ function PosterPage() {
                   )}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  A photo of your product, shop or team works best.
+                  A photo of your product, shop or team works best. The photo keeps its shape and is never stretched.
                 </p>
               </div>
             </div>
           </SectionCard>
         </div>
 
-        <SectionCard title="Preview" description="This is exactly what you'll download." className="lg:sticky lg:top-6 lg:self-start">
+        <SectionCard
+          title="Preview"
+          description="Square 1080 × 1080 for Instagram and Facebook."
+          className="lg:sticky lg:top-6 lg:self-start"
+        >
           <div ref={frameRef} className="w-full">
             <div
               className="mx-auto overflow-hidden rounded-md border shadow-card"
-              style={{ width: POSTER_W * scale, height: POSTER_H * scale }}
+              style={{ width: POSTER_SIZE * scale, height: POSTER_SIZE * scale }}
             >
               <div style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}>
-                <PosterCanvas ref={canvasRef} template={template} fields={fields} colors={colors} />
+                <PosterCanvas template={template} fields={fields} colors={colors} editing />
               </div>
             </div>
           </div>
         </SectionCard>
+      </div>
+
+      {/* Off-screen export copy: no editor placeholders, poster only. */}
+      <div aria-hidden style={{ position: "fixed", top: 0, left: -100000, pointerEvents: "none", opacity: 0 }}>
+        <PosterCanvas ref={exportRef} template={template} fields={fields} colors={colors} />
       </div>
     </div>
   );
